@@ -106,7 +106,7 @@ h2{margin:0 0 10px;font-size:clamp(32px,7vmin,72px);font-weight:900}
   <button class="pw" id="pwDad"><img id="pwDadImg" alt=""><div>레드 에너지 방패<small>아빠 · 엄마가 못 와요</small></div><div class="cd"></div><span class="cdt"></span></button>
   <button class="pw" id="pwEden"><img id="pwEdenImg" alt=""><div>레드 빔<small>이든 · 엄마 튕겨내기</small></div><div class="cd"></div><span class="cdt"></span></button>
 </div>
-<div id="bossHP">👑 왕방구 엄마 <span id="bossHPn"></span><div id="bossBarO"><div id="bossBarI"></div></div></div>
+<div id="bossHP">👑 빵구 엄마 <span id="bossHPn"></span><div id="bossBarO"><div id="bossBarI"></div></div></div>
 <div id="toast"></div>
 <div id="chance">
   <div id="chanceTxt">잡혔다! 빨리 막아요!</div>
@@ -123,7 +123,7 @@ h2{margin:0 0 10px;font-size:clamp(32px,7vmin,72px);font-weight:900}
     🔴 아빠 <b>레드 에너지 방패</b>, 이든 <b>레드 빔</b>으로 방구 엄마를 막아요!<br>
     ⚡ 잡히면 <b>“에너지 막기!”</b> — <b>번개 게이지</b>가 가득일 때만 돼요 (별을 먹으면 빨리 차요). 아니면 하트 -1<br>
     💨 초록 방구 구름에 들어가면 느릿느릿! 🪢 함정을 밟으면 3초 동안 꽁꽁!<br>
-    👑 1분 버티면 <b>왕방구 엄마</b> 등장! 빨간 에너지 구슬을 먹고 부딪히거나 레드 파워로 물리쳐요!<br>
+    ⏱️ <b>1스테이지만 30초</b> 버티면 클리어 → <b>빵구 엄마</b> 보스전(시간 제한 없음)! 스테이지↑할수록 보스 더 크고 무서움. 2·3스테이지도 시간제한 없음.<br>
     🎁 선물: 💥폭탄 별 · 🧲자석 방패 · 👟번개 신발 · ❄️얼음 구슬 · 🍄거대화 · 🍬게이지 사탕 · ❤️하트<br>
     ⭐ 별 = 점수! 하트 3개가 다 없어지면 끝!
   </div>
@@ -136,8 +136,8 @@ h2{margin:0 0 10px;font-size:clamp(32px,7vmin,72px);font-weight:900}
   <button class="big alt" id="restartBtn">처음부터</button>
 </div>
 <div class="screen" id="win">
-  <img id="winBoss" alt="왕방구 엄마">
-  <h2>🎉 왕방구 엄마를 물리쳤어요! 🎉</h2>
+  <img id="winBoss" alt="빵구 엄마">
+  <h2>🎉 빵구 엄마를 물리쳤어요! 🎉</h2>
   <div class="stat" id="winScore"></div>
   <div class="stat" id="winTime"></div>
   <div class="best" id="winBest"></div>
@@ -188,28 +188,144 @@ $('pwDadImg').src=IMG_SRC.dad;$('pwEdenImg').src=IMG_SRC.eden;$('stDad').src=IMG
 
 // ---------- Maze (landscape base 19x13; portrait = transposed) ----------
 var BASE=[
-'###################',
-'#.......#.#.......#',
-'#.###.#.....#.###.#',
-'#.#...#.###.#...#.#',
-'#.#.###.....###.#.#',
-'#.................#',
-'###.#.##...##.#.###',
-'#.................#',
-'#.#.###.....###.#.#',
-'#.#...#.###.#...#.#',
-'#.###.#.....#.###.#',
-'#.......#.#.......#',
-'###################'];
+'#########################',
+'#########.ttttt.#########',
+'######ttttttttttttt######',
+'####ttttttttttttttttt####',
+'###tttttt.##X##.tttttt###',
+'##ttttt#..D.X.D..#ttttt##',
+'#.tttt..###.X.###..tttt.#',
+'#tttt#..D.#.X.#.D..#tttt#',
+'#tttt#.###.#X#.###.#tttt#',
+'#tttt...###.X.###...tttt#',
+'#.tttt..D.#.X.#.D..tttt.#',
+'##ttttt###..X..###ttttt##',
+'###tttttt.D.X.D.tttttt###',
+'####ttttttttttttttttt####',
+'######ttttttttttttt######',
+'#########.ttttt.#########',
+'#########################'
+];
 var BW=BASE[0].length,BH=BASE.length;
-var portrait=false,GW=BW,GH=BH,grid=[];
+var portrait=false,GW=BW,GH=BH,grid=[],trackMap=[],doorMap=[],lineMap=[],doors=[];
 function buildGrid(){
-  grid=[];GW=portrait?BH:BW;GH=portrait?BW:BH;
-  for(var y=0;y<GH;y++){var row=[];for(var x=0;x<GW;x++){var ch=portrait?BASE[x][y]:BASE[y][x];row.push(ch==='#'?1:0);}grid.push(row);}
+  grid=[];trackMap=[];doorMap=[];lineMap=[];GW=portrait?BH:BW;GH=portrait?BW:BH;
+  for(var y=0;y<GH;y++){var row=[],tr=[],dr=[],ln=[];for(var x=0;x<GW;x++){
+    var ch=portrait?BASE[x][y]:BASE[y][x];
+    var wall=(ch==='#'||ch==='X')?1:0; row.push(wall);
+    tr.push(ch==='t'?1:0); dr.push(ch==='D'?1:0); ln.push(ch==='X'?1:0);
+  }grid.push(row);trackMap.push(tr);doorMap.push(dr);lineMap.push(ln);}
+  doors=[];for(y=0;y<GH;y++)for(var x=0;x<GW;x++)if(doorMap[y][x])doors.push({x:x,y:y,open:true,ph:Math.random()*2});
 }
 function P(c,r){return portrait?{x:r+.5,y:c+.5}:{x:c+.5,y:r+.5};}
-var START={dad:[7,11],eden:[11,11]},SPAWN=[[9,1],[9,6]];
-function isWall(cx,cy){if(cx<0||cy<0||cx>=GW||cy>=GH)return true;return grid[cy][cx]===1;}
+var START={dad:[7,14],eden:[17,14]},SPAWN=[[12,2],[6,8],[18,8]];
+function isWall(cx,cy){if(cx<0||cy<0||cx>=GW||cy>=GH)return true;if(grid[cy][cx]===1)return true;
+  if(doorMap[cy]&&doorMap[cy][cx]){for(var i=0;i<doors.length;i++)if(doors[i].x===cx&&doors[i].y===cy)return!doors[i].open;}
+  return false;}
+
+// NEW Eden systems (hand-built; not old trap toggles)
+var stage=1,STAGE_MAX=3,stageClearT=0,stageLimit=30,stageFail=false,escapeRoute=null,blinkTraps=[],doorChain=0;
+function clampInMap(e){if(e.r==null)e.r=.33;var r=e.r;e.x=clamp(e.x,r+.05,GW-r-.05);e.y=clamp(e.y,r+.05,GH-r-.05);e.px=e.x;e.py=e.y;collide(e);}
+function initDoorChain(){doors.sort(function(a,b){return (a.y*100+a.x)-(b.y*100+b.x);});doorChain=0;for(var i=0;i<doors.length;i++){doors[i].idx=i;doors[i].open=(i===0);doors[i].ph=0;}}
+function syncDoorOpen(){for(var i=0;i<doors.length;i++)doors[i].open=(i===doorChain);}
+function updateDoors(dt){
+  syncDoorOpen();
+  for(var i=0;i<doors.length;i++)doors[i].ph+=dt;
+  for(var c=0;c<chars.length;c++){
+    var ch=chars[c];
+    for(var i=0;i<doors.length;i++){
+      var d=doors[i];if(!d.open)continue;
+      if(Math.abs(ch.x-(d.x+.5))<.55&&Math.abs(ch.y-(d.y+.5))<.55){
+        if(doorChain===i){
+          if(i<doors.length-1){doorChain=i+1;syncDoorOpen();toast('다음 문이 열렸어요! 🚪',1200,'#7dffb3');if(SFX.release)SFX.release();}
+          else{toast('문 연쇄 도망 성공! 💨',1200,'#b6ff5c');}
+        }
+      }
+    }
+  }
+}
+function placeBlinkTraps(){
+  blinkTraps=[];
+  var ft=freeTiles().filter(function(t){return !(lineMap[t.y]&&lineMap[t.y][t.x])&&!(doorMap[t.y]&&doorMap[t.y][t.x])&&!(trackMap[t.y]&&trackMap[t.y][t.x]&&Math.random()<.35);});
+  for(var i=0;i<5&&ft.length;i++){
+    var idx=(Math.random()*ft.length)|0,t=ft.splice(idx,1)[0];
+    blinkTraps.push({x:t.x+.5,y:t.y+.5,ph:Math.random()*3,on:false,hand:Math.random()*6});
+  }
+}
+function updateBlinkTraps(dt){
+  for(var i=0;i<blinkTraps.length;i++){
+    var q=blinkTraps[i];q.ph+=dt;q.hand+=dt;q.on=(Math.floor(q.ph*2.2)%2)===0; // 나타났다 사라짐
+    if(!q.on)continue;
+    for(var c=0;c<chars.length;c++){
+      var ch=chars[c];
+      if(dist(ch,q)<.55){
+        // 빵구/왕빵구 추격 중 통과 → 도망 루트 + 문 연속 개방
+        var chased=false;
+        for(var m=0;m<monsters.length;m++){
+          var mo=monsters[m];if(mo.kind==='blink')continue;
+          if(dist(mo,ch)<4.2){chased=true;mo.stun=Math.max(mo.stun||0,2.4);if(typeof flyTo==='function')flyTo(mo,farTile(mo,ch.x,ch.y,7),.45,1.2);}
+        }
+        escapeRoute={x:ch.x,y:ch.y,life:2.8,r:1.55,flash:1};
+        // temporarily open adjacent wall cell as escape corridor
+        var tx=Math.floor(ch.x),ty=Math.floor(ch.y);
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){var nx=tx+d[0],ny=ty+d[1];if(nx>0&&ny>0&&nx<GW-1&&ny<GH-1&&grid[ny][nx]===1&&!lineMap[ny][nx]){grid[ny][nx]=0;setTimeout(function(){grid[ny][nx]=1;renderMaze();},2200);}});
+        renderMaze();
+        if(doorChain<doors.length-1){doorChain++;syncDoorOpen();}
+        toast(chased?'함정! 도망 루트+다음 문! ✋🚪':'깜빡 함정! ✋',1300,'#ffd6ff');if(SFX.repel)SFX.repel();
+        q.ph+=1.0; // disappear after trigger
+        break;
+      }
+    }
+  }
+  if(escapeRoute){escapeRoute.life-=dt;escapeRoute.flash=(escapeRoute.flash||0)+dt;if(escapeRoute.life<=0)escapeRoute=null;}
+}
+function makeBlinker(i){var s=P(SPAWN[Math.min(i,SPAWN.length-1)][0],SPAWN[Math.min(i,SPAWN.length-1)][1]);
+  return {x:s.x,y:s.y,r:.33,nx:null,ny:null,lx:-1,ly:-1,stun:1.2,fly:null,ph:Math.random()*6,trail:0,home:i,kind:'blink',blinkOn:true,gasT:999};}
+function blinkVisible(m){return !!m.blinkOn;}
+function makeMom(kind){var m=makeMonster(0);m.kind=kind||'mom';m.r=(kind==='king')?.48:.36;m.king=(kind==='king');m.stun=1.4;m.gasT=rnd(5,8);return m;}
+function stageTimeLimit(){return stage===1?30:0;}
+function applyStageMapTweaks(){
+  // keep oval track/line/doors; add stage-specific extra walls/gaps (maps may differ)
+  var extras=stage===1?[[11,6],[13,6]]:stage===2?[[9,7],[15,7],[11,10],[13,10],[10,8]]:[[9,5],[15,5],[9,11],[15,11],[11,7],[13,7],[10,9],[14,9]];
+  for(var i=0;i<extras.length;i++){var x=extras[i][0],y=extras[i][1];
+    if(y>=0&&y<GH&&x>=0&&x<GW&&!doorMap[y][x]&&!lineMap[y][x]&&!trackMap[y][x]){grid[y][x]=1;}}
+  if(stage>=2){for(var y=0;y<GH;y++)for(var x=0;x<GW;x++){if(trackMap[y][x]&&(x+y+stage)%11===0&&!doorMap[y][x]){/* cones on track */}}}
+  renderMaze();
+}
+function setupStage(n){
+  stage=Math.max(1,Math.min(STAGE_MAX,n|0));stageClearT=0;doorChain=0;escapeRoute=null;boss=null;bossDone=false;gauge=0;playTime=0;stageLimit=stageTimeLimit();stageFail=false;
+  buildGrid();applyStageMapTweaks();
+  chars=[makeChar('dad'),makeChar('eden')];
+  var spdMul=stage===1?1:stage===2?1.25:1.5;
+  if(stage===1) monsters=[makeMom('mom'),makeIan(),makeBlinker(2)];
+  else if(stage===2) monsters=[makeMom('mom'),makeMom('mom'),makeIan(),makeBlinker(2),makeBlinker(1)];
+  else monsters=[makeMom('king'),makeMom('mom'),makeBlinker(2),makeBlinker(1),makeBlinker(0)];
+  monsters.forEach(function(m){m.spdMul=spdMul;});
+  poops=[];roundTime=0;secondAnnounced=false;
+  placeTraps();placeBlinkTraps();initDoorChain();
+  // more blink traps on harder stages
+  if(stage>=2){for(var bi=0;bi<(stage===3?3:2);bi++){var ft=freeTiles();if(!ft.length)break;var t=ft[(Math.random()*ft.length)|0];blinkTraps.push({x:t.x+.5,y:t.y+.5,ph:Math.random()*3,on:false,hand:Math.random()*6});}}
+  stars=[];gases=[];beams=[];warns=[];items=[];itemT=0;
+  var starN=6+stage*2,itemN=8+stage*4; // more items every stage
+  for(var i=0;i<starN;i++)spawnStar();for(i=0;i<itemN;i++)spawnItem();
+  chance=null;state='play';hideChance();
+  toast(stage===1?'스테이지 1 시작! ⏱️30초만 버티면 클리어':'스테이지 '+stage+' 시작! 시간 제한 없음 · 미션으로 클리어',1800,'#ffe082');
+  toast('깜빡함정·문 연쇄로 도망! 아이템 많이 있어요!',1600,'#ff9bd2');
+}
+function tryClearStage(){if(boss)return;toast('스테이지 '+stage+' 클리어! 빵구 엄마 보스전! 👑',1800,'#ffe082');startStageBoss();}
+function startStageBoss(){
+  startBoss();
+  // 체감 분명: 1 < 2 < 3 크기·위협
+  var scale=stage===1?1:stage===2?1.75:2.55;
+  var max=Math.round(BOSS_HP*(0.9+stage*0.7));
+  boss.hp=max;boss.maxHp=max;boss.r=.8*scale;boss.scale=scale;boss.stageBoss=stage;boss.name='빵구 엄마';
+  boss.waveT=stage===1?5.2:stage===2?3.4:2.2;boss.puffT=stage===1?3.4:stage===2?2.1:1.2;
+  shake=Math.max(shake,.8+stage*.45);
+  var label=stage===1?'빵구 엄마':(stage===2?'빵구 엄마 (커짐·무서움)':'빵구 엄마 (거대·최종)');
+  toast('👑 '+label+' 등장! 시간 제한 없음 👑',2200,'#ffe066');
+  if($('bossHP'))$('bossHP').innerHTML='👑 '+label+' <span id="bossHPn"></span><div id="bossBarO"><div id="bossBarI"></div></div>';
+}
+
 
 // ---------- Helpers ----------
 function clamp(v,a,b){return v<a?a:v>b?b:v;}
@@ -347,7 +463,7 @@ function makeChar(id){
 }
 function makeMonster(i){
   var s=P(SPAWN[i][0],SPAWN[i][1]);
-  return {x:s.x,y:s.y,nx:null,ny:null,lx:-1,ly:-1,stun:1.6,fly:null,ph:Math.random()*6,trail:0,home:i,gasT:rnd(5,8)};
+  return {x:s.x,y:s.y,r:.36,nx:null,ny:null,lx:-1,ly:-1,stun:1.6,fly:null,ph:Math.random()*6,trail:0,home:i,gasT:rnd(5,8)};
 }
 function makeIan(){var m=makeMonster(1);m.kind='ian';m.stun=2.5;m.poopT=1.5;return m;}
 function dropPoop(m){
@@ -400,7 +516,7 @@ function spawnItem(){
     if(chars.some(function(o){return dist(o,c)<2.5;}))return false;
     if(monsters.some(function(o){return dist(o,c)<2;}))return false;if(boss&&dist(boss,c)<2.5)return false;
     if(traps.some(function(o){return dist(o,c)<1;}))return false;if(stars.some(function(o){return dist(o,c)<.9;}))return false;
-    if(orbs.some(function(o){return dist(o,c)<1.5;}))return false;if(items.some(function(o){return dist(o,c)<3;}))return false;return true;});
+    if(orbs.some(function(o){return dist(o,c)<1.5;}))return false;if(items.some(function(o){return dist(o,c)<1.6;}))return false;return true;});
   if(!ft.length)return;var t=ft[(Math.random()*ft.length)|0];items.push({x:t.x+.5,y:t.y+.5,k:pickItemType(),ph:Math.random()*6,age:0});
 }
 function applyItem(c,it){
@@ -418,16 +534,10 @@ function applyItem(c,it){
   else if(it.k==='heart'){if(lives<3)lives++;else bonus+=100;}
 }
 function releaseAll(){chars.forEach(function(c){c.ptr=null;});}
-function resetRound(){
-  chars=[makeChar('dad'),makeChar('eden')];
-  monsters=[makeMonster(0),makeIan()];poops=[];roundTime=0;secondAnnounced=false;
-  placeTraps();stars=[];gases=[];beams=[];warns=[];items=[];itemT=0;for(var i=0;i<6;i++)spawnStar();for(i=0;i<5;i++)spawnItem();
-  chance=null;state='play';hideChance();
-  toast('방구 엄마랑 이안이가 쫓아와요! 🏃',1500,'#ff9bd2');
-}
+function resetRound(){setupStage(stage||1);}
 function newGame(){
   lives=3;score=0;bonus=0;playTime=0;starCount=0;parts=[];gauge=1;boss=null;bossDone=false;warns=[];orbs=[];show('bossHP',false);
-  resetRound();SFX.start();startMusic('main');if(BOSS_TEST)playTime=BOSS_AT;
+  stage=1;setupStage(1);SFX.start();startMusic('main');if(BOSS_TEST){stage=3;setupStage(3);playTime=BOSS_AT;}
   show('start',false);show('over',false);show('pause',false);show('win',false);
 }
 
@@ -442,7 +552,7 @@ function updateHud(){
   var s=Math.floor(score);var str=h+'|'+s+'|'+Math.floor(playTime)+'|'+starCount;
   if(str!==lastHud){lastHud=str;$('hearts').innerHTML=h;$('scoreP').textContent='점수 '+s;$('timeP').textContent='⏱ '+Math.floor(playTime/60)+':'+('0'+Math.floor(playTime%60)).slice(-2);$('starP').textContent='⭐ '+starCount;}
   var gp=$('gaugeP'),full=gauge>=1;$('gFill').style.width=Math.round(gauge*100)+'%';if(gp.classList.contains('full')!==full){gp.classList.toggle('full',full);$('gTxt').textContent=full?'가득!':'';}
-  if(boss){$('bossBarI').style.width=Math.max(0,boss.hp/BOSS_HP*100)+'%';$('bossHPn').textContent=Math.max(0,Math.ceil(boss.hp))+' / '+BOSS_HP;$('bossHP').style.top=($('hud').getBoundingClientRect().bottom+2)+'px';}
+  if(boss){var bm=boss.maxHp||BOSS_HP;$('bossBarI').style.width=Math.max(0,boss.hp/bm*100)+'%';var hn=$('bossHPn');if(hn)hn.textContent=Math.max(0,Math.ceil(boss.hp))+' / '+bm;$('bossHP').style.top=($('hud').getBoundingClientRect().bottom+2)+'px';}
   [['pwDad',chars[0]],['pwEden',chars[1]]].forEach(function(p){
     var el=$(p[0]),c=p[1];if(!c)return;var cdEl=el.querySelector('.cd'),tx=el.querySelector('.cdt');
     var ready=c.cd<=0&&state==='play';
@@ -546,7 +656,7 @@ function usePower(i){
   }
 }
 
-// ---------- Boss: 왕방구 엄마 ----------
+// ---------- Boss: 빵구 엄마 (스테이지 클리어마다, 시간제한 없음) ----------
 function knockAway(m,c,amount,dur,stun){
   if(m===boss){var dx=m.x-c.x,dy=m.y-c.y,l=Math.hypot(dx,dy)||1;
     var tx=clamp(m.x+dx/l*amount,1.6,GW-1.6),ty=clamp(m.y+dy/l*amount,1.6,GH-1.6);
@@ -556,7 +666,10 @@ function knockAway(m,c,amount,dur,stun){
 function bossDamage(n,x,y,txt){
   if(!boss||boss.hp<=0)return;boss.hp-=n;boss.hurt=.35;bonus+=n*10;SFX.hit();shake=Math.max(shake,.3);
   redBurst(x==null?boss.x:x,y==null?boss.y:y,26);ftext(boss.x,boss.y-1.4,(txt||'')+'-'+n,'#ff5050',.9);
-  if(boss.hp<=0){state='winwait';winT=1.8;releaseAll();boss.fly=null;puff(boss.x,boss.y,60,2.4);redBurst(boss.x,boss.y,60);shake=1;SFX.wave();toast('왕방구 엄마를 물리쳤어요!',1800,'#ffe066');}
+  if(boss.hp<=0){releaseAll();boss.fly=null;puff(boss.x,boss.y,60,2.4);redBurst(boss.x,boss.y,60);shake=1;SFX.wave();
+    var cleared=boss.stageBoss||stage;toast('빵구 엄마를 물리쳤어요! 👑',1800,'#ffe066');show('bossHP',false);boss=null;bossDone=true;monsters=[];
+    if(cleared<STAGE_MAX){toast('다음 스테이지 '+ (cleared+1) +'!',1600,'#b6ff5c');setupStage(cleared+1);}
+    else{toast('3스테이지+보스 모두 클리어! 🏆',2000,'#ffe082');state='winwait';winT=1.5;}}
 }
 function spawnOrb(){
   var ft=freeTiles().filter(function(t){var c={x:t.x+.5,y:t.y+.5};
@@ -567,20 +680,20 @@ function spawnOrb(){
 function startBoss(){
   startMusic('boss');
   monsters.forEach(function(m){puff(m.x,m.y,20,1.2);ftext(m.x,m.y-.6,m.kind==='ian'?'형아 안녕~':'안녕~','#ff9bd2',.7);});monsters=[];
-  var s=P(9,6);boss={x:s.x,y:s.y,hp:BOSS_HP,stun:2.2,fly:null,ph:0,hurt:0,waveT:4.5,puffT:3,r:1.05};
+  var s=P(Math.floor(GW/2),Math.floor(GH/2));boss={x:s.x,y:s.y,hp:BOSS_HP,maxHp:BOSS_HP,stun:2.2,fly:null,ph:0,hurt:0,waveT:4.5,puffT:3,r:1.05,stageBoss:stage,name:'빵구 엄마',scale:1};
   warns=[];orbs=[];orbT=0;spawnOrb();spawnOrb();
-  shake=1.2;SFX.boss();puff(s.x,s.y,50,2.2);toast('👑 왕방구 엄마 등장! 👑',2200,'#ffe066');show('bossHP',true);
+  shake=1.2;SFX.boss();puff(s.x,s.y,50,2.2);toast('👑 빵구 엄마 등장! (시간 제한 없음) 👑',2200,'#ffe066');show('bossHP',true);
 }
 function updateBoss(dt){
   var b=boss,i,c;b.ph+=dt;b.hurt=Math.max(0,b.hurt-dt);
   if(b.fly){b.fly.t+=dt;var f=Math.min(1,b.fly.t/b.fly.dur),e=1-Math.pow(1-f,3);b.x=b.fly.fx+(b.fly.tx-b.fly.fx)*e;b.y=b.fly.fy+(b.fly.ty-b.fly.fy)*e;if(f>=1)b.fly=null;}
   else if(b.stun>0)b.stun-=dt;
   else{var tg=null,bd=1e9;chars.forEach(function(o){if(o.shield>0)return;var d=dist(o,b);if(d<bd){bd=d;tg=o;}});
-    if(tg){var sp=.95+(1-b.hp/BOSS_HP)*.45,dx=tg.x-b.x,dy=tg.y-b.y,l=Math.hypot(dx,dy)||1,st=Math.min(l,sp*dt);b.x+=dx/l*st;b.y+=dy/l*st;}
+    if(tg){var bm=b.maxHp||BOSS_HP;var scare=b.scale||1;var sp=(.9+(1-b.hp/bm)*.55)*(0.85+scare*0.35),dx=tg.x-b.x,dy=tg.y-b.y,l=Math.hypot(dx,dy)||1,st=Math.min(l,sp*dt);b.x+=dx/l*st;b.y+=dy/l*st;}
     b.x=clamp(b.x,1.6,GW-1.6);b.y=clamp(b.y,1.6,GH-1.6);
     if(Math.random()<dt*8)parts.push({k:'cloud',x:b.x+rnd(-1,1),y:b.y+rnd(-.5,1),vx:0,vy:0,life:.9,max:.9,r:rnd(.2,.4),col:'#a6e36b'});}
   // big fart wave: warning circle -> gas zone
-  b.waveT-=dt;if(b.waveT<=0){b.waveT=b.hp<BOSS_HP/2?4.5:6;
+  b.waveT-=dt;if(b.waveT<=0){var bm2=b.maxHp||BOSS_HP;b.waveT=b.hp<bm2/2?4.5:6;
     var who=chars[(Math.random()*chars.length)|0];warns.push({x:who.x,y:who.y,r:2,t:1.3,max:1.3});SFX.warn();ftext(b.x,b.y-1.5,'방구 파도 간다~!','#c8f56b',.75);}
   b.puffT-=dt;if(b.puffT<=0){b.puffT=3.5;if(gases.length<7){gases.push({x:b.x+rnd(-1,1),y:b.y+rnd(-.5,.8),r:1,life:5,max:5,ph:Math.random()*6});SFX.gas();}}
   for(i=warns.length-1;i>=0;i--){var w=warns[i];w.t-=dt;if(w.t>0)continue;warns.splice(i,1);
@@ -624,6 +737,7 @@ function chanceHit(){
   SFX.win();shake=.5;redBurst(c.x,c.y,50);ring(c.x,c.y,3.5,'rgba(255,50,50,');ftext(c.x,c.y-1,'에너지 막기!','#ff6b6b',1);
   knockAway(m,c,99,.75,3);c.safe=1.6;c.shield=Math.max(c.shield,2.5);c.shieldR=Math.max(c.shieldR,1.4);bonus+=30;
   toast('막아냈다! ⚡',1000,'#ff8a8a');
+  if(m&&(m.kind==='mom'||m.kind==='king'||m.king)){toast('미션 성공! 다음 스테이지!',1400,'#b6ff5c');tryClearStage();}
   if(m===boss)bossDamage(3,null,null,'막기! ');
   if(state==='winwait'){chance=null;hideChance();return;}
   finishChance();
@@ -653,8 +767,10 @@ function update(dt){
   if(state==='tied'){tiedT-=dt;if(tiedT<=0)resetRound();return;}
   if(state==='overwait'){overT-=dt;if(overT<=0)gameOver();return;}
   if(state!=='play')return;
-  playTime+=dt;roundTime+=dt;score=playTime*10+bonus;gauge=Math.min(1,gauge+dt/(boss?14:GAUGE_TIME));
-  if(!boss&&!bossDone&&playTime>=BOSS_AT){startBoss();}
+  updateDoors(dt);updateBlinkTraps(dt);chars.forEach(clampInMap);monsters.forEach(clampInMap);
+  playTime+=dt;roundTime+=dt;if(!boss)stageClearT+=dt;score=playTime*10+bonus;gauge=Math.min(1,gauge+dt/(boss?14:GAUGE_TIME));
+  // stage timed mission: survive limit (stage1=30s) → clear; difficulty already in setup
+  if(!boss&&stageLimit>0&&stageClearT>=stageLimit){tryClearStage();}
   // characters
   for(i=0;i<chars.length;i++){c=chars[i];
     c.cd=Math.max(0,c.cd-dt);c.shield=Math.max(0,c.shield-dt);c.boost=Math.max(0,c.boost-dt);c.safe=Math.max(0,c.safe-dt);c.trapImm=Math.max(0,c.trapImm-dt);c.slowMsg=Math.max(0,c.slowMsg-dt);
@@ -700,11 +816,12 @@ function update(dt){
   // second monster
   var spd=monsterSpeed();
   for(i=0;i<monsters.length;i++){m=monsters[i];m.ph+=dt;
+    if(m.kind==='blink'){m.blinkOn = (Math.floor(m.ph*2)%2)===0; if(!m.blinkOn){/* phasing */} }
     if(m.fly){m.fly.t+=dt;var f=Math.min(1,m.fly.t/m.fly.dur),e=1-Math.pow(1-f,3);m.x=m.fly.fx+(m.fly.tx-m.fly.fx)*e;m.y=m.fly.fy+(m.fly.ty-m.fly.fy)*e;
       if(Math.random()<dt*30)puff(m.x,m.y,1,.6);if(f>=1){m.fly=null;m.nx=null;}continue;}
     if(m.stun>0){m.stun-=dt;}
     else{
-      var step=spd*(m.kind==='ian'?IAN_SPEED:1)*dt,guard=0;
+      var step=spd*(m.kind==='ian'?IAN_SPEED:1)*(m.spdMul||1)*dt,guard=0;
       while(step>0&&guard++<6){
         if(m.nx===null){chooseNext(m);}
         var gx=m.nx+.5,gy=m.ny+.5,dx=gx-m.x,dy=gy-m.y,dd=Math.hypot(dx,dy);
@@ -719,7 +836,7 @@ function update(dt){
     for(var j=0;j<chars.length;j++){c=chars[j];var d=dist(c,m);
       if(c.giant>0&&!m.fly&&d<1.1){SFX.bump();shake=.3;redBurst(m.x,m.y,16);ftext(m.x,m.y-.6,'쾅!','#e0b3ff',.7);bonus+=20;flyTo(m,farTile(m,c.x,c.y,99),.6,2.5);break;}
       if(c.shield>0&&!m.fly&&d<c.shieldR+.45){SFX.repel();redBurst((c.x+m.x)/2,(c.y+m.y)/2,12);ftext(m.x,m.y-.6,'팅!','#ff8a8a',.6);bonus+=10;flyTo(m,farTile(m,c.x,c.y,4),.35,.9);break;}
-      if(d<.72&&c.shield<=0&&c.giant<=0&&c.safe<=0&&m.stun<=0){startChance(c,m);return;}
+      if(d<.72&&c.shield<=0&&c.giant<=0&&c.safe<=0&&m.stun<=0&&(m.kind!=='blink'||blinkVisible(m))){startChance(c,m);return;}
     }
   }
 }
@@ -747,9 +864,19 @@ function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);
 function renderMaze(){
   mazeCanvas=document.createElement('canvas');var T=tile*dpr;mazeCanvas.width=Math.ceil(GW*T);mazeCanvas.height=Math.ceil(GH*T);
   var g=mazeCanvas.getContext('2d'),x,y;
-  // floor
-  rr(g,0,0,GW*T,GH*T,T*.4);g.fillStyle='#fff3d1';g.fill();
-  for(y=0;y<GH;y++)for(x=0;x<GW;x++)if(!grid[y][x]&&(x+y)%2){g.fillStyle='#ffe9b8';g.fillRect(x*T,y*T,T,T);}
+  // floor (infield grass-ish)
+  rr(g,0,0,GW*T,GH*T,T*.4);g.fillStyle='#d8f0c8';g.fill();
+  for(y=0;y<GH;y++)for(x=0;x<GW;x++)if(!grid[y][x]&&!trackMap[y][x]&&(x+y)%2){g.fillStyle='#c7e6b0';g.fillRect(x*T,y*T,T,T);}
+  // oval race track
+  for(y=0;y<GH;y++)for(x=0;x<GW;x++)if(trackMap[y]&&trackMap[y][x]){
+    g.fillStyle=(x+y)%2?'#e07a4a':'#c9683c';g.fillRect(x*T,y*T,T,T);
+    g.strokeStyle='rgba(255,230,120,.55)';g.lineWidth=T*.06;g.beginPath();g.moveTo(x*T+T*.15,y*T+T*.5);g.lineTo(x*T+T*.85,y*T+T*.5);g.stroke();
+  }
+  // midline hazard (static)
+  for(y=0;y<GH;y++)for(x=0;x<GW;x++)if(lineMap[y]&&lineMap[y][x]){
+    g.fillStyle='#ff3b3b';g.fillRect(x*T+T*.3,y*T,T*.4,T);
+    g.fillStyle='#ffe066';g.fillRect(x*T+T*.42,y*T,T*.16,T);
+  }
   // wall shadow, wall body, wall top highlight
   var layers=[[0,'#3d2f9e',T*.07],[0,'#7b6cf0',0],[T*.2,'#a99cff',-T*.03]];
   layers.forEach(function(L){
@@ -774,6 +901,23 @@ function render(){
   var sx=0,sy=0;if(shake>0){sx=rnd(-1,1)*shake*14;sy=rnd(-1,1)*shake*14;}
   ctx.save();ctx.translate(sx,sy);
   if(mazeCanvas)ctx.drawImage(mazeCanvas,ox,oy,GW*tile,GH*tile);
+  // doors (open/close)
+  doors.forEach(function(d){var s=W2S(d.x+.5,d.y+.5),T=tile;ctx.save();ctx.translate(s[0],s[1]);
+    if(d.open){ctx.globalAlpha=.85;ctx.fillStyle='#7dffb3';ctx.fillRect(-T*.4,-T*.12,T*.8,T*.24);ctx.fillStyle='#1b7a45';ctx.font=(T*.28)+'px sans-serif';ctx.textAlign='center';ctx.fillText('문열림',0,-T*.2);}
+    else{ctx.fillStyle='#ff6b6b';ctx.fillRect(-T*.45,-T*.45,T*.9,T*.9);ctx.fillStyle='#fff';ctx.font=(T*.26)+'px sans-serif';ctx.textAlign='center';ctx.fillText('닫힘',0,T*.08);}
+    ctx.restore();});
+  // NEW blinking hand-traps
+  blinkTraps.forEach(function(q){var s=W2S(q.x,q.y),T=tile,a=q.on?1:.25;ctx.save();ctx.translate(s[0],s[1]);ctx.globalAlpha=a;
+    ctx.strokeStyle='#ff79c6';ctx.lineWidth=T*.07;ctx.beginPath();
+    // hand scribble
+    for(var k=0;k<5;k++){var ang=q.hand+k*1.1;ctx.lineTo(Math.cos(ang)*T*(.15+k*.05),Math.sin(ang*1.3)*T*(.12+k*.04));}
+    ctx.stroke();ctx.fillStyle='#fff';ctx.font=(T*.22)+'px sans-serif';ctx.textAlign='center';ctx.fillText('깜빡함정',0,-T*.35);ctx.restore();});
+  if(escapeRoute){var es=W2S(escapeRoute.x,escapeRoute.y),T=tile;ctx.save();ctx.globalAlpha=Math.min(1,escapeRoute.life/2);ctx.strokeStyle='#7dffb3';ctx.lineWidth=T*.1;ctx.beginPath();ctx.arc(es[0],es[1],escapeRoute.r*T,0,7);ctx.stroke();ctx.restore();}
+  // stage HUD
+  ctx.save();ctx.font='bold 16px sans-serif';ctx.fillStyle='#fff';ctx.strokeStyle='#000';ctx.lineWidth=3;ctx.textAlign='left';
+  var left=Math.max(0,Math.ceil(stageLimit-stageClearT));var st=boss?('STAGE '+stage+'/3  보스 · 빵구 엄마 · ∞'):(stageLimit>0?('STAGE '+stage+'/3  ⏱️'+left+'s'):('STAGE '+stage+'/3  ∞'));ctx.strokeText(st,12,28);ctx.fillText(st,12,28);ctx.restore();
+
+
   var T=tile,t=now/1000,i,p;
   // traps (sneaky: faint & shimmering)
   traps.forEach(function(q){var s=W2S(q.x,q.y),a=.5+.25*Math.sin(t*2+q.ph);ctx.save();ctx.globalAlpha=q.sprung?1:a;ctx.translate(s[0],s[1]);
@@ -844,7 +988,8 @@ function render(){
   });
   // monsters
   monsters.forEach(function(m){var s=W2S(m.x,m.y),wob=1+Math.sin(m.ph*6)*.05,rot=m.fly?m.fly.t*14:Math.sin(m.ph*3)*.08;
-    var isIan=m.kind==='ian',mnm=isIan?'이안':'방구 엄마';
+    if(m.kind==='blink'&&!blinkVisible(m)){ctx.save();ctx.globalAlpha=.18;ctx.fillStyle='#b388ff';ctx.beginPath();ctx.arc(s[0],s[1],tile*.35,0,7);ctx.fill();ctx.restore();return;}
+    var isIan=m.kind==='ian',isBlink=m.kind==='blink',isKing=m.kind==='king'||m.king,mnm=isBlink?'깜빡이':(isKing?'왕빵구 엄마':(isIan?'이안':(m.kind==='mom'?'빵구 엄마':'방구 엄마')));
     if(isIan){ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(s[0],s[1]+T*.36,T*.3,T*.1,0,0,7);ctx.fill();drawImg(imgs.ian,s[0],s[1]+Math.abs(Math.sin(m.ph*8))*-T*.05,T*.95,T*.95,m.fly?rot:Math.sin(m.ph*4)*.08,m.stun>0&&!m.fly?.75:1);}
     else drawImg(imgs.monster,s[0],s[1],T*1.5*wob,T*1.35/wob,rot,m.stun>0&&!m.fly?.75:1);
     if(!m.fly){ctx.font='800 '+Math.max(10,T*.26)+'px -apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -855,14 +1000,14 @@ function render(){
   // boss
   if(boss){var bs=W2S(boss.x,boss.y),dying=state==='winwait',bw=1+Math.sin(boss.ph*3)*.04,brot=boss.fly?Math.sin(boss.ph*30)*.15:Math.sin(boss.ph*2)*.06;
     ctx.save();ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(bs[0],bs[1]+T*1.1,T*1.3,T*.3,0,0,7);ctx.fill();ctx.restore();
-    var bscale=dying?Math.max(0,winT/1.8):1;
+    var bscale=(boss.scale||1)*(dying?Math.max(.2,winT/1.8):1);
     if(boss.hurt>0){ctx.save();ctx.shadowColor='#ff0000';ctx.shadowBlur=T;}
     drawImg(imgs.boss,bs[0],bs[1],T*3.1*bw*bscale,T*2.6/bw*bscale,brot+(dying?(1.8-winT)*6:0),boss.stun>0&&!boss.fly?.85:1);
     if(boss.hurt>0)ctx.restore();
     if(boss.frozen>0){ctx.save();ctx.globalAlpha=.4;ctx.fillStyle='#9be7ff';rr(ctx,bs[0]-T*1.5,bs[1]-T*1.25,T*3,T*2.5,T*.5);ctx.fill();ctx.restore();}
     if(boss.stun>0&&!boss.fly&&!dying){for(var bk=0;bk<4;bk++){var ban=t*4+bk*1.6;ctx.fillStyle='#ffe066';drawStarShape(ctx,bs[0]+Math.cos(ban)*T*1.1,bs[1]-T*1.3+Math.sin(ban)*T*.2,T*.18,T*.08);ctx.fill();}}
     if(!dying){ctx.font='900 '+Math.max(11,T*.32)+'px -apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-      var bnw=ctx.measureText('👑 왕방구 엄마').width+T*.3;ctx.fillStyle='#b8860b';rr(ctx,bs[0]-bnw/2,bs[1]+T*1.15,bnw,T*.4,T*.2);ctx.fill();ctx.fillStyle='#fff';ctx.fillText('👑 왕방구 엄마',bs[0],bs[1]+T*1.36);}}
+      var blab='👑 '+(boss.name||'빵구 엄마');var bnw=ctx.measureText(blab).width+T*.3;ctx.fillStyle='#7b2d8e';rr(ctx,bs[0]-bnw/2,bs[1]+T*1.15,bnw,T*.4,T*.2);ctx.fill();ctx.fillStyle='#fff';ctx.fillText(blab,bs[0],bs[1]+T*1.36);}}
   // red beams
   beams.forEach(function(b){var a=W2S(b.ax,b.ay),e=W2S(b.bx,b.by),f=b.life/b.max;ctx.save();ctx.lineCap='round';ctx.shadowColor='#ff0000';ctx.shadowBlur=T*.6;
     ctx.globalAlpha=f;ctx.strokeStyle='rgba(255,40,40,.9)';ctx.lineWidth=T*.4*f+2;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(e[0],e[1]);ctx.stroke();
@@ -908,7 +1053,7 @@ function frame(ts){
 }
 buildGrid();
 // demo scene behind the start screen
-chars=[makeChar('dad'),makeChar('eden')];monsters=[makeMonster(0),makeIan()];placeTraps();for(var si=0;si<6;si++)spawnStar();
+stage=1;/* boot via newGame/setupStage */for(var si=0;si<0;si++)spawnStar();
 layout();requestAnimationFrame(frame);
 window.__game={get state(){return state;},get chars(){return chars;},get monsters(){return monsters;},get traps(){return traps;},get lives(){return lives;},get score(){return score;},startChance:function(i){startChance(chars[i],boss||monsters[0]);},get gases(){return gases;},get poops(){return poops;},get BOSS_AT(){return BOSS_AT;},get items(){return items;},get music(){return {on:!!music.timer,name:music.name,ac:AC?AC.state:'none',musicOn:musicOn};},get ITEMS(){return ITEMS;},applyItemTest:function(ci,k){applyItem(chars[ci],{x:chars[ci].x,y:chars[ci].y,k:k});},get lossLog(){return lossLog;},bfs:bfs,get GW(){return GW;},get GH(){return GH;},isWall:isWall,get lifeCount(){return lives;},get boss(){return boss;},get gauge(){return gauge;},set gauge(v){gauge=v;},get orbs(){return orbs;},get warns(){return warns;},startBoss:function(){if(!boss)playTime=BOSS_AT;},chanceHit:chanceHit,usePower:usePower,screenOf:function(){return chars.map(function(c){return W2S(c.x,c.y);});}};
 })();
